@@ -1,373 +1,682 @@
+// This Is the code for care compass as the API's used in Safe Route aspect of Safe Haven didn't load into Github, email me for that code
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>SafeRoute + CareCompass — Safety & Care Companion</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <title>CareCompass — Health, Wellness & Medication Support</title>
+  <meta name="description" content="CareCompass helps users track mood, meds, habits, and access community resources — privacy-first, accessible, and offline-ready." />
   <style>
-    :root{--brand:#2563eb;--accent:#06b6d4}
-    .glass{backdrop-filter:saturate(150%) blur(8px); background: rgba(255,255,255,.7)}
-    .tab-active{background:var(--brand);color:white}
-    .hold-ring{transition: stroke-dashoffset .12s linear}
-    body.text-lg{font-size:1.125rem}
+    :root {
+      --bg: #0f172a;           /* slate-900 */
+      --panel: #111827;        /* gray-900 */
+      --soft: #1f2937;         /* gray-800 */
+      --muted: #9ca3af;        /* gray-400 */
+      --text: #f8fafc;         /* slate-50 */
+      --brand: #22d3ee;        /* cyan-400 */
+      --brand-2: #a78bfa;      /* violet-400 */
+      --ok: #34d399;           /* green-400 */
+      --warn: #fbbf24;         /* amber-400 */
+      --danger: #fb7185;       /* rose-400 */
+      --shadow: 0 20px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+    [data-theme="light"] {
+      --bg: #f8fafc;          /* slate-50 */
+      --panel: #ffffff;        /* white */
+      --soft: #e5e7eb;         /* gray-200 */
+      --muted: #475569;        /* slate-600 */
+      --text: #0f172a;         /* slate-900 */
+      --brand: #0891b2;        /* cyan-700 */
+      --brand-2: #6d28d9;      /* violet-700 */
+      --ok: #047857;           /* green-700 */
+      --warn: #b45309;         /* amber-700 */
+      --danger: #be123c;       /* rose-700 */
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: radial-gradient(1000px 600px at 80% -10%, rgba(34,211,238,.12), transparent 60%),
+                  radial-gradient(800px 500px at -10% 0%, rgba(167,139,250,.12), transparent 60%), var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    header {
+      position: sticky; top: 0; z-index: 10; backdrop-filter: saturate(140%) blur(12px);
+      background: linear-gradient(180deg, rgba(15,23,42,.85), rgba(15,23,42,.6));
+      border-bottom: 1px solid rgba(148,163,184,.15);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 18px 18px; }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing:.3px; }
+    .brand svg { width: 30px; height: 30px; }
+    .sub { color: var(--muted); font-size: 13px; margin-top: -6px; }
+
+    .grid {
+      display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: stretch;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.008));
+      border: 1px solid rgba(148,163,184,.15);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 16px; min-height: 120px;
+    }
+    .card h3 { margin: 0 0 10px; font-size: 18px; letter-spacing:.2px; }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .pillbar { display:flex; gap:8px; flex-wrap: wrap; }
+    .pill { padding: 8px 12px; border-radius: 999px; border:1px solid rgba(148,163,184,.2); cursor:pointer; }
+    .pill.active { background: linear-gradient(90deg, var(--brand), var(--brand-2)); color: white; border-color: transparent; }
+
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+    .btn { padding: 10px 14px; border-radius: 12px; border:1px solid rgba(148,163,184,.25); background: transparent; color: var(--text); cursor:pointer; }
+    .btn.primary { background: linear-gradient(90deg, var(--brand), var(--brand-2)); border-color: transparent; color:white; }
+    .btn.danger { border-color: rgba(251,113,133,.4); }
+
+    input, select, textarea { width: 100%; padding: 12px 12px; border-radius: 12px; border:1px solid rgba(148,163,184,.25); background: var(--panel); color: var(--text); }
+    textarea { min-height: 120px; resize: vertical; }
+    label { font-size: 13px; color: var(--muted); display:block; margin-bottom: 6px; }
+    .row { display:grid; grid-template-columns: repeat(12,1fr); gap:12px; }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    nav { display:flex; gap:8px; flex-wrap: wrap; }
+    nav .tab { padding: 10px 14px; border-radius: 12px; border:1px solid rgba(148,163,184,.25); cursor:pointer; }
+    nav .tab.active { background: linear-gradient(90deg, var(--brand), var(--brand-2)); color:white; border-color: transparent; }
+
+    .stat { display:flex; align-items:center; justify-content: space-between; padding: 10px 12px; border-radius: 12px; background: rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.15); }
+
+    .footer { color: var(--muted); font-size: 12px; text-align:center; padding: 24px 0 40px; }
+
+    .switch { position: relative; width: 56px; height: 32px; background: rgba(148,163,184,.25); border-radius: 999px; cursor: pointer; border:1px solid rgba(148,163,184,.2); }
+    .switch .dot { position:absolute; top:3px; left:3px; width:26px; height:26px; border-radius:50%; background:white; transition: transform .2s ease; }
+    .switch.on { background: linear-gradient(90deg, var(--brand), var(--brand-2)); }
+    .switch.on .dot { transform: translateX(24px); }
+
+    .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; border:1px solid rgba(148,163,184,.25); color: var(--muted); }
+
+    /* responsive */
+    @media (max-width: 860px) {
+      .grid { grid-template-columns: repeat(6, 1fr); }
+      .col-6 { grid-column: span 6; }
+      .col-8 { grid-column: span 6; }
+      .col-4 { grid-column: span 6; }
+    }
   </style>
 </head>
-<body class="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-800">
-  <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur">
-    <div class="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-2xl bg-blue-600 grid place-items-center text-white font-bold">SC</div>
+<body>
+  <header>
+    <div class="wrap" style="display:flex; align-items:center; justify-content: space-between; gap:14px;">
+      <div class="brand">
+        <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <defs>
+            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#22d3ee"/>
+              <stop offset="100%" stop-color="#a78bfa"/>
+            </linearGradient>
+          </defs>
+          <path d="M100 20c44 0 80 36 80 80s-36 80-80 80S20 144 20 100 56 20 100 20Z" stroke="url(#g)" stroke-width="10"/>
+          <path d="M60 110c8 18 34 30 40 30 6 0 39-14 40-50 0-20-13-33-31-33s-23 13-23 13-6-8-18-8-22 8-22 25c0 9 4 16 14 23Z" fill="url(#g)"/>
+        </svg>
         <div>
-          <h1 class="text-lg font-semibold">SafeRoute + CareCompass</h1>
-          <p class="text-xs text-slate-500 -mt-1">Personal safety, health reminders, and local care resources — privacy-first.</p>
+          <div style="font-size:18px">CareCompass</div>
+          <div class="sub">Wellness • Medication • Safety • Community</div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="contrastBtn" class="px-3 py-2 rounded-xl border text-sm">High Contrast</button>
-        <button id="textBtn" class="px-3 py-2 rounded-xl border text-sm">Large Text</button>
+      <div class="toolbar">
+        <span class="badge" id="privacyBadge">Privacy: On-Device</span>
+        <button class="btn" id="themeBtn" title="Toggle light/dark">Toggle Theme</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="muted" style="font-size:12px;">High Contrast</span>
+          <div class="switch" id="contrastSwitch" role="switch" aria-checked="false"><div class="dot"></div></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="muted" style="font-size:12px;">Privacy Mode</span>
+          <div class="switch" id="privacySwitch" role="switch" aria-checked="false"><div class="dot"></div></div>
+        </div>
       </div>
     </div>
   </header>
 
-  <main class="mx-auto max-w-6xl p-4 grid gap-4">
-    <nav class="grid grid-cols-3 md:grid-cols-8 gap-2">
-      <button class="tab tab-active rounded-2xl py-2 font-medium" data-tab="dashboard">Dashboard</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="route">Safe Route</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="care">Care Compass</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="meds">Meds & Alerts</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="checkin">Check‑In</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="report">Report Hazard</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="resources">Resources</button>
-      <button class="tab rounded-2xl py-2 font-medium" data-tab="settings">Settings</button>
+  <main class="wrap" id="app" aria-live="polite">
+    <nav style="margin: 6px 0 14px;">
+      <button class="tab active" data-tab="home">Home</button>
+      <button class="tab" data-tab="mood">Mood</button>
+      <button class="tab" data-tab="meds">Meds</button>
+      <button class="tab" data-tab="journal">Journal</button>
+      <button class="tab" data-tab="sos">SOS</button>
+      <button class="tab" data-tab="resources">Resources</button>
+      <button class="tab" data-tab="settings">Settings</button>
     </nav>
 
-    <!-- Dashboard -->
-    <section id="dashboard" class="grid gap-4 md:grid-cols-3">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-2">Quick SOS</h2>
-        <p class="text-sm text-slate-600 mb-3">Hold the button to send a discreet SOS SMS with your location to trusted contacts.</p>
-        <div class="flex items-center gap-6">
-          <div class="relative">
-            <svg width="140" height="140" viewBox="0 0 120 120" class="block">
-              <circle cx="60" cy="60" r="54" stroke="#e2e8f0" stroke-width="12" fill="none"/>
-              <circle id="holdProgress" cx="60" cy="60" r="54" stroke="var(--brand)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="339.292" stroke-dashoffset="339.292" class="hold-ring"/>
-            </svg>
-            <button id="sosBtn" class="absolute inset-0 m-auto h-24 w-24 rounded-full bg-red-600 text-white text-2xl font-bold shadow">SOS</button>
-          </div>
-          <div class="text-sm">
-            <div>Hold progress: <span id="holdPct" class="font-semibold">0%</span></div>
-            <div class="mt-3 flex gap-2">
-              <a href="tel:911" class="px-3 py-2 rounded-xl bg-red-50 text-red-700 border">Call 911</a>
-              <button id="testSms" class="px-3 py-2 rounded-xl bg-blue-50 text-blue-700 border">Test</button>
+    <!-- HOME -->
+    <section id="home" class="tabview" style="display:block;">
+      <div class="grid">
+        <div class="card col-8">
+          <h3>Welcome back <span id="nameSpot"></span> 👋</h3>
+          <p class="muted">Your daily snapshot combines mood, medication adherence, and quick wins.
+          Everything is private and stored only on your device.</p>
+          <div class="row" style="margin-top:12px;">
+            <div class="col-4">
+              <div class="stat">
+                <div>
+                  <div class="muted" style="font-size:12px;">Today’s Mood</div>
+                  <div id="homeMood" style="font-size:22px; font-weight:700;">—</div>
+                </div>
+                <div aria-hidden="true">😊</div>
+              </div>
             </div>
-            <p class="text-xs text-slate-500 mt-3">Add trusted contacts in Settings.</p>
+            <div class="col-4">
+              <div class="stat">
+                <div>
+                  <div class="muted" style="font-size:12px;">Meds Taken</div>
+                  <div id="homeMeds" style="font-size:22px; font-weight:700;">0%</div>
+                </div>
+                <div aria-hidden="true">💊</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat">
+                <div>
+                  <div class="muted" style="font-size:12px;">Streak</div>
+                  <div id="homeStreak" style="font-size:22px; font-weight:700;">0 days</div>
+                </div>
+                <div aria-hidden="true">🔥</div>
+              </div>
+            </div>
+          </div>
+          <canvas id="moodChart" width="900" height="220" style="margin-top:14px; width:100%; background: rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.15); border-radius: 12px;"></canvas>
+        </div>
+        <div class="card col-4">
+          <h3>Quick Actions</h3>
+          <div class="pillbar" style="margin-bottom:10px;">
+            <button class="pill" onclick="quickLogMood(4)">Log Mood 😊</button>
+            <button class="pill" onclick="quickLogMood(2)">Log Mood 😕</button>
+            <button class="pill" onclick="markAllMedsTaken()">Mark Meds Taken</button>
+            <button class="pill" onclick="newJournalPrompt()">Journal Prompt</button>
+          </div>
+          <div class="pillbar">
+            <button class="pill" onclick="navigate('sos')">Open SOS</button>
+            <button class="pill" onclick="exportData()">Export Data</button>
+            <label class="pill" style="cursor:pointer;">
+              Import Data<input type="file" accept="application/json" onchange="importData(event)" style="display:none;" />
+            </label>
           </div>
         </div>
       </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-2">Today — Appointments & Meds</h2>
-        <div id="todayList" class="space-y-2 text-sm"></div>
-        <div class="mt-3 text-right"><button id="goMeds" class="px-3 py-2 rounded-xl border">Manage Meds</button></div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-2">Mood & Check‑Ins</h2>
-        <div class="text-sm">Rate your mood now:</div>
-        <div class="flex gap-2 mt-2">
-          <button class="moodBtn px-3 py-2 rounded-xl border" data-val="1">😞</button>
-          <button class="moodBtn px-3 py-2 rounded-xl border" data-val="2">😐</button>
-          <button class="moodBtn px-3 py-2 rounded-xl border" data-val="3">🙂</button>
-          <button class="moodBtn px-3 py-2 rounded-xl border" data-val="4">😃</button>
-        </div>
-        <div id="moodLog" class="text-xs text-slate-500 mt-3"></div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm md:col-span-3">
-        <h2 class="text-lg font-semibold mb-3">Live Map — Safety & Care Places</h2>
-        <div id="map" class="h-72 rounded-2xl"></div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm md:col-span-3">
-        <h2 class="text-lg font-semibold mb-3">Recent Community Reports</h2>
-        <div id="reportList" class="grid md:grid-cols-3 gap-3"></div>
-      </div>
     </section>
 
-    <!-- Safe Route -->
-    <section id="route" class="hidden grid gap-4 md:grid-cols-5">
-      <div class="glass rounded-3xl p-6 shadow-sm md:col-span-2">
-        <h2 class="text-lg font-semibold mb-3">Plan a Safer Route</h2>
-        <label class="text-sm">Start</label>
-        <input id="startInput" class="w-full mt-1 mb-3 rounded-xl border p-2" placeholder="Start address"/>
-        <label class="text-sm">Destination</label>
-        <input id="endInput" class="w-full mt-1 mb-4 rounded-xl border p-2" placeholder="Destination address"/>
-        <label class="text-sm">Preferences</label>
-        <div class="grid grid-cols-2 gap-2 my-2 text-sm">
-          <label class="flex items-center gap-2"><input type="checkbox" id="wellLit" checked> Well‑lit</label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="avoidReports" checked> Avoid hazards</label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="nearCampus"> Near campus</label>
-          <label class="flex items-center gap-2"><input type="checkbox" id="mainRoads" checked> Main roads</label>
-        </div>
-        <button id="planBtn" class="mt-2 w-full rounded-xl bg-blue-600 text-white py-2 font-medium">Generate Route</button>
-        <div id="scoreWrap" class="mt-4 hidden">
-          <div class="text-sm text-slate-600">Safety Score</div>
-          <div id="safetyScore" class="text-3xl font-semibold">—</div>
-          <p id="routeTips" class="text-sm text-slate-600 mt-1"></p>
-        </div>
-      </div>
-      <div class="glass rounded-3xl p-3 shadow-sm md:col-span-3">
-        <div id="routeMap" class="h-[450px] rounded-2xl"></div>
-      </div>
-    </section>
-
-    <!-- Care Compass -->
-    <section id="care" class="hidden grid gap-4 md:grid-cols-3">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Symptom Checker (Quick)</h2>
-        <input id="symInput" class="w-full rounded-xl border p-2" placeholder="e.g., headache, fever"/>
-        <button id="symCheck" class="mt-3 w-full rounded-xl bg-emerald-600 text-white py-2">Check</button>
-        <div id="symResult" class="mt-3 text-sm text-slate-600"></div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Telehealth Quick Links</h2>
-        <div class="grid gap-2 text-sm">
-          <a class="p-3 rounded-xl border" target="_blank" href="https://nc.gov/">Local Health Services</a>
-          <a class="p-3 rounded-xl border" target="_blank" href="https://www.healthline.com/">Healthline</a>
-          <a class="p-3 rounded-xl border" target="_blank" href="https://www.mentalhealth.gov/">Mental Health Resources</a>
-        </div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Quick Care Actions</h2>
-        <div class="grid gap-2 text-sm">
-          <button id="findClinic" class="p-3 rounded-xl border">Find Nearest Clinic</button>
-          <button id="callCrisis" class="p-3 rounded-xl border">Call 24/7 Crisis Line</button>
-          <button id="bookRide" class="p-3 rounded-xl border">Request Non‑Emergency Ride</button>
-        </div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm md:col-span-3">
-        <h2 class="text-lg font-semibold mb-3">Health Timeline</h2>
-        <div id="timeline" class="text-sm"></div>
-      </div>
-    </section>
-
-    <!-- Meds & Alerts -->
-    <section id="meds" class="hidden grid gap-4 md:grid-cols-2">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Medication Reminders</h2>
-        <div class="flex gap-2 mb-3">
-          <input id="medName" class="flex-1 rounded-xl border p-2" placeholder="Medicine name"/>
-          <input id="medTime" type="time" class="rounded-xl border p-2"/>
-          <button id="addMed" class="px-4 rounded-xl bg-slate-800 text-white">Add</button>
-        </div>
-        <ul id="medList" class="space-y-2 text-sm"></ul>
-      </div>
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Appointments</h2>
-        <div class="flex gap-2 mb-3">
-          <input id="apptName" class="flex-1 rounded-xl border p-2" placeholder="Doctor / Service"/>
-          <input id="apptDate" type="date" class="rounded-xl border p-2"/>
-          <button id="addAppt" class="px-4 rounded-xl border">Add</button>
-        </div>
-        <ul id="apptList" class="space-y-2 text-sm"></ul>
-      </div>
-    </section>
-
-    <!-- Check-In -->
-    <section id="checkin" class="hidden grid gap-4 md:grid-cols-2">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Scheduled Check‑In</h2>
-        <p class="text-sm text-slate-600 mb-3">If you miss a check‑in, the app prepares a message to trusted contacts with your last location.</p>
-        <div class="flex items-end gap-3">
-          <div>
-            <label class="text-sm">Minutes</label>
-            <input id="mins" type="number" min="1" value="15" class="w-24 mt-1 rounded-xl border p-2"/>
+    <!-- MOOD -->
+    <section id="mood" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-6">
+          <h3>Daily Mood Check-in</h3>
+          <label>Your mood (1–5)</label>
+          <div class="pillbar" role="group" aria-label="mood buttons">
+            <button class="pill" onclick="setMood(1)">1 😣</button>
+            <button class="pill" onclick="setMood(2)">2 😕</button>
+            <button class="pill" onclick="setMood(3)">3 😐</button>
+            <button class="pill" onclick="setMood(4)">4 🙂</button>
+            <button class="pill" onclick="setMood(5)">5 😄</button>
           </div>
-          <button id="startTimer" class="h-10 px-4 rounded-xl bg-blue-600 text-white font-medium">Start</button>
-          <button id="cancelTimer" class="h-10 px-4 rounded-xl border">Cancel</button>
+          <label style="margin-top:10px;">Notes (optional)</label>
+          <textarea id="moodNotes" placeholder="What influenced your mood today?"></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn primary" onclick="saveMood()">Save Mood</button>
+            <button class="btn" onclick="clearTodayMood()">Clear Today</button>
+          </div>
         </div>
-        <div class="mt-4 text-2xl font-semibold" id="timeLeft">—</div>
-      </div>
-
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Trusted Contacts</h2>
-        <div class="flex gap-2 mb-3">
-          <input id="contactName" class="flex-1 rounded-xl border p-2" placeholder="Name"/>
-          <input id="contactPhone" class="flex-1 rounded-xl border p-2" placeholder="Phone"/>
-          <button id="addContact" class="px-4 rounded-xl bg-slate-800 text-white">Add</button>
+        <div class="card col-6">
+          <h3>Insights</h3>
+          <p id="moodAdvice" class="muted">Log a few days to unlock personalized suggestions based on PHQ‑2 style screening questions.</p>
+          <div class="row">
+            <div class="col-12">
+              <div class="stat"><span>14‑day Average</span><strong id="avg14">—</strong></div>
+            </div>
+            <div class="col-12">
+              <div class="stat"><span>Low Mood Days (≤2)</span><strong id="lowDays">—</strong></div>
+            </div>
+          </div>
         </div>
-        <ul id="contactList" class="space-y-2 text-sm"></ul>
-      </div>
-    </section>
-
-    <!-- Report Hazard -->
-    <section id="report" class="hidden grid gap-4 md:grid-cols-2">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">New Community Report</h2>
-        <label class="text-sm">Type</label>
-        <select id="reportType" class="w-full mt-1 mb-3 rounded-xl border p-2">
-          <option>Poor lighting</option>
-          <option>Suspicious activity</option>
-          <option>Harassment</option>
-          <option>Stray animal</option>
-          <option>Road hazard</option>
-          <option>Other</option>
-        </select>
-        <label class="text-sm">Description</label>
-        <textarea id="reportDesc" rows="4" class="w-full mt-1 mb-3 rounded-xl border p-2" placeholder="What happened?" ></textarea>
-        <button id="useLocation" class="mb-3 px-3 py-2 rounded-xl border">Use my current location</button>
-        <div class="grid grid-cols-2 gap-2">
-          <input id="lat" class="rounded-xl border p-2" placeholder="Latitude"/>
-          <input id="lng" class="rounded-xl border p-2" placeholder="Longitude"/>
+        <div class="card col-12">
+          <h3>Mood Trend (Last 14 Days)</h3>
+          <canvas id="moodChart2" width="1000" height="260" style="width:100%; background: rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.15); border-radius: 12px;"></canvas>
         </div>
-        <button id="saveReport" class="mt-4 w-full rounded-xl bg-blue-600 text-white py-2 font-medium">Save Report</button>
-        <p class="text-xs text-slate-500 mt-2">Reports are stored locally. For emergencies, call 911.</p>
-      </div>
-      <div class="glass rounded-3xl p-3 shadow-sm">
-        <div id="reportMap" class="h-[450px] rounded-2xl"></div>
       </div>
     </section>
 
-    <!-- Resources -->
-    <section id="resources" class="hidden glass rounded-3xl p-6 shadow-sm">
-      <h2 class="text-lg font-semibold mb-3">Local Resources</h2>
-      <div class="grid md:grid-cols-3 gap-3 mb-3 text-sm">
-        <input id="resSearch" class="rounded-xl border p-2" placeholder="Search by name or service"/>
-        <select id="resType" class="rounded-xl border p-2">
-          <option value="">All Types</option>
-          <option value="shelter">Shelter</option>
-          <option value="clinic">Health Clinic</option>
-          <option value="food">Food Bank</option>
-          <option value="mental">Mental Health</option>
-          <option value="legal">Legal Aid</option>
-        </select>
-        <select id="resArea" class="rounded-xl border p-2">
-          <option value="">All Areas</option>
-          <option>Raleigh</option>
-          <option>Durham</option>
-          <option>Chapel Hill</option>
-          <option>Cary</option>
-        </select>
+    <!-- MEDS -->
+    <section id="meds" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-6">
+          <h3>Add Medication</h3>
+          <div class="row">
+            <div class="col-6">
+              <label>Name</label>
+              <input id="medName" placeholder="e.g., Sertraline" />
+            </div>
+            <div class="col-6">
+              <label>Dose</label>
+              <input id="medDose" placeholder="e.g., 50 mg" />
+            </div>
+            <div class="col-6">
+              <label>Times per Day</label>
+              <select id="medTimes">
+                <option>1</option><option>2</option><option>3</option><option>4</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Time Window</label>
+              <input id="medWhen" placeholder="e.g., 8am / 8pm" />
+            </div>
+            <div class="col-12">
+              <button class="btn primary" onclick="addMed()">Add</button>
+            </div>
+          </div>
+        </div>
+        <div class="card col-6">
+          <h3>Today’s Schedule</h3>
+          <div id="medList" class="muted">No meds yet.</div>
+          <div style="margin-top:10px; display:flex; gap:8px;">
+            <button class="btn" onclick="markAllMedsTaken()">Mark All Taken</button>
+            <button class="btn danger" onclick="resetTodayMeds()">Reset Today</button>
+          </div>
+        </div>
+        <div class="card col-12">
+          <h3>Adherence</h3>
+          <p class="muted">Track how consistently you take medications over time.</p>
+          <canvas id="adherenceChart" width="1000" height="220" style="width:100%; background: rgba(148,163,184,.08); border:1px solid rgba(148,163,184,.15); border-radius: 12px;"></canvas>
+        </div>
       </div>
-      <div id="resList" class="grid md:grid-cols-3 gap-3"></div>
     </section>
 
-    <!-- Settings -->
-    <section id="settings" class="hidden grid gap-4 md:grid-cols-2">
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">Privacy & Safety</h2>
-        <label class="flex items-center justify-between py-2"><span class="text-sm">Share location only when sending SOS</span><input id="privacyLoc" type="checkbox" checked class="h-5 w-5"/></label>
-        <label class="flex items-center justify-between py-2"><span class="text-sm">Require long‑press for SOS</span><input id="requireHold" type="checkbox" checked class="h-5 w-5"/></label>
-        <label class="flex items-center justify-between py-2"><span class="text-sm">Auto‑open SMS composer</span><input id="autoSms" type="checkbox" checked class="h-5 w-5"/></label>
-      </div>
-      <div class="glass rounded-3xl p-6 shadow-sm">
-        <h2 class="text-lg font-semibold mb-3">District & Theme</h2>
-        <select id="district" class="w-full mt-1 mb-3 rounded-xl border p-2">
-          <option>NC‑02 (Raleigh / Wake)</option>
-          <option>NC‑04 (Durham / Chapel Hill)</option>
-        </select>
-        <label class="text-sm">Theme</label>
-        <select id="theme" class="w-full mt-1 mb-3 rounded-xl border p-2"><option value="light">Light</option><option value="dim">Dim</option><option value="dark">Dark</option></select>
-        <button id="resetApp" class="mt-2 rounded-xl border px-4 py-2">Reset (clear local data)</button>
+    <!-- JOURNAL -->
+    <section id="journal" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-8">
+          <h3>Reflect & Grow</h3>
+          <label>Prompt</label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input id="journalPrompt" readonly />
+            <button class="btn" onclick="newJournalPrompt()">New Prompt</button>
+          </div>
+          <label style="margin-top:10px;">Your Entry</label>
+          <textarea id="journalText" placeholder="Write freely. This stays on your device."></textarea>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn primary" onclick="saveJournal()">Save Entry</button>
+            <button class="btn" onclick="clearJournal()">Clear</button>
+          </div>
+        </div>
+        <div class="card col-4">
+          <h3>Entries</h3>
+          <div id="journalList" class="muted">No entries yet.</div>
+        </div>
       </div>
     </section>
 
+    <!-- SOS -->
+    <section id="sos" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-6" style="border-left: 6px solid var(--danger);">
+          <h3>Emergency Contacts</h3>
+          <div id="sosList" class="pillbar" style="margin-bottom:10px;"></div>
+          <div class="row">
+            <div class="col-6"><label>Name</label><input id="sosName" placeholder="e.g., Mom"/></div>
+            <div class="col-6"><label>Phone</label><input id="sosPhone" placeholder="e.g., +1 555‑123‑4567"/></div>
+            <div class="col-12"><button class="btn primary" onclick="addSOS()">Add Contact</button></div>
+          </div>
+          <p class="muted" style="margin-top:10px;">Tap a contact to call or long‑press to remove.</p>
+        </div>
+        <div class="card col-6">
+          <h3>Hotlines & Help</h3>
+          <ul>
+            <li><strong>988 Suicide & Crisis Lifeline:</strong> <a href="tel:988">Call 988</a></li>
+            <li><strong>Emergency:</strong> <a href="tel:911">Call 911</a></li>
+            <li><strong>Crisis Text Line:</strong> Text <em>HOME</em> to <a href="sms:741741">741741</a></li>
+            <li><strong>National Domestic Violence Hotline:</strong> <a href="tel:18007997233">1‑800‑799‑SAFE</a></li>
+          </ul>
+          <p class="muted">These links use your device’s dialer/text app.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESOURCES -->
+    <section id="resources" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-12">
+          <h3>Community Resources</h3>
+          <p class="muted">Find local help for food, housing, mental health, and clinics. (Sample dataset; you can edit or add your local resources.)</p>
+          <div class="row" style="margin-top:8px;">
+            <div class="col-6">
+              <label>Filter by Type</label>
+              <select id="resFilter" onchange="renderResources()">
+                <option value="all">All</option>
+                <option value="food">Food</option>
+                <option value="housing">Housing</option>
+                <option value="health">Health</option>
+                <option value="mental">Mental Health</option>
+                <option value="legal">Legal</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Add Resource (Name | Type | Phone/URL)</label>
+              <input id="resAdd" placeholder="e.g., Food Bank | food | https://… or +1 555‑000‑0000" onkeydown="if(event.key==='Enter') addResource()" />
+            </div>
+            <div class="col-12">
+              <button class="btn" onclick="addResource()">Add</button>
+              <button class="btn danger" onclick="resetResources()">Reset to Defaults</button>
+            </div>
+          </div>
+          <div id="resList" style="margin-top:12px; display:grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap:12px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="settings" class="tabview" style="display:none;">
+      <div class="grid">
+        <div class="card col-6">
+          <h3>Profile</h3>
+          <label>Your name</label>
+          <input id="yourName" placeholder="Optional" />
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button class="btn primary" onclick="saveName()">Save</button>
+            <button class="btn danger" onclick="hardReset()">Erase All Data</button>
+          </div>
+          <p class="muted" style="margin-top:10px;">CareCompass stores all data in your browser’s local storage. Export regularly if needed.</p>
+        </div>
+        <div class="card col-6">
+          <h3>Accessibility</h3>
+          <label>Base Font Size</label>
+          <input id="fontSlider" type="range" min="14" max="22" value="16" oninput="updateFontSize(this.value)" />
+          <div class="muted">Current: <span id="fontSizeVal">16</span>px</div>
+          <div style="margin-top:10px;">
+            <button class="btn" onclick="toggleReducedMotion()" id="motionBtn">Reduce Motion: Off</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Built with ❤️ for community impact. Privacy-first. No cloud required.</div>
   </main>
-  <footer class="mx-auto max-w-6xl p-4 text-center text-xs text-slate-500">Built for submission — privacy-first, offline-ready, community impact.</footer>
 
-<script>
-// Simple local store
-const storeKey = 'safe_compass_v1';
-let state = JSON.parse(localStorage.getItem(storeKey) || '{"contacts":[],"reports":[],"meds":[],"appts":[],"mood":[],"settings":{"privacyLoc":true,"requireHold":true,"autoSms":true,"district":"NC-02"}}');
-function save(){ localStorage.setItem(storeKey, JSON.stringify(state)); }
-function toast(msg){ const t=document.createElement('div'); t.className='fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl bg-slate-900 text-white text-sm'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),1800); }
+  <dialog id="welcome">
+    <form method="dialog" style="margin:0;">
+      <div class="card" style="background: var(--panel); width:min(640px, 92vw);">
+        <h3>Welcome to CareCompass</h3>
+        <p class="muted">Track mood, meds, journal privately, and get quick access to help. Everything stays on this device. You can export data anytime.</p>
+        <label>Your name (optional)</label>
+        <input id="welcomeName" placeholder="Helps personalize insights"/>
+        <div style="display:flex; gap:8px; margin-top:10px; justify-content:flex-end;">
+          <button class="btn" value="cancel">Skip</button>
+          <button class="btn primary" value="ok" onclick="saveWelcomeName()">Let’s Go</button>
+        </div>
+      </div>
+    </form>
+  </dialog>
 
-// Tabs
-$$('.tab').forEach(btn=>btn.addEventListener('click',()=>{ $$('.tab').forEach(b=>b.classList.remove('tab-active')); btn.classList.add('tab-active'); const id=btn.dataset.tab; $$('main section').forEach(s=>s.classList.add('hidden')); document.getElementById(id).classList.remove('hidden'); }));
+  <script>
+    const $ = (q) => document.querySelector(q);
+    const $$ = (q) => Array.from(document.querySelectorAll(q));
+    const store = {
+      get k(){ return JSON.parse(localStorage.getItem('carecompass') || '{}'); },
+      set k(v){ localStorage.setItem('carecompass', JSON.stringify(v)); },
+      read(path, fallback){ const k=this.k; return path.split('.').reduce((a,c)=> (a&&a[c]!==undefined)?a[c]:fallback, k); },
+      write(path, value){ const k=this.k; const parts=path.split('.'); let cur=k; parts.forEach((p,i)=>{ if(i===parts.length-1){ cur[p]=value; } else { cur[p]=cur[p]||{}; cur=cur[p]; } }); this.k=k; },
+    };
 
-// Accessibility
-$('#contrastBtn').addEventListener('click',()=>document.body.classList.toggle('contrast'));
-$('#textBtn').addEventListener('click',()=>document.body.classList.toggle('text-lg'));
+    const state = {
+      theme: localStorage.getItem('cc_theme') || 'dark',
+      highContrast: localStorage.getItem('cc_contrast') === '1',
+      privacyMask: localStorage.getItem('cc_privacy') === '1',
+      reducedMotion: localStorage.getItem('cc_motion') === '1',
+      baseFont: parseInt(localStorage.getItem('cc_font')||'16',10),
+    };
 
-// Map init
-let map, marker;
-function initMap(){ map = L.map('map'); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-  navigator.geolocation?.getCurrentPosition(p=>{ map.setView([p.coords.latitude,p.coords.longitude],13); marker=L.marker([p.coords.latitude,p.coords.longitude]).addTo(map).bindPopup('You are here'); }, ()=>{ map.setView([35.78,-78.64],12); }); }
+    // THEME + ACCESSIBILITY
+    function applyTheme(){
+      document.documentElement.dataset.theme = state.theme === 'light' ? 'light' : '';
+      $('#themeBtn').textContent = `Theme: ${state.theme==='light'?'Light':'Dark'}`;
+    }
+    function toggleTheme(){ state.theme = state.theme==='light'?'dark':'light'; localStorage.setItem('cc_theme', state.theme); applyTheme(); }
+    $('#themeBtn').addEventListener('click', toggleTheme);
 
-// Reports
-function renderRecent(){ const wrap = $('#reportList'); wrap.innerHTML=''; const recent = [...state.reports].reverse().slice(0,6); if(!recent.length){ wrap.innerHTML='<div class="text-sm text-slate-500">No reports yet.</div>'; return } recent.forEach(r=>{ const card=document.createElement('div'); card.className='rounded-2xl border p-3 bg-white'; card.innerHTML=`<div class="text-sm font-semibold">${r.type}</div><div class="text-xs text-slate-600 mt-1">${r.desc||''}</div><div class="text-xs text-slate-500 mt-2">${new Date(r.ts).toLocaleString()}</div>`; wrap.appendChild(card); }) }
+    function applyContrast(){
+      const on = state.highContrast;
+      $('#contrastSwitch').classList.toggle('on', on);
+      $('#contrastSwitch').setAttribute('aria-checked', on? 'true':'false');
+      document.body.style.filter = on ? 'contrast(1.15) saturate(1.1)' : 'none';
+    }
+    $('#contrastSwitch').addEventListener('click', ()=>{ state.highContrast=!state.highContrast; localStorage.setItem('cc_contrast', state.highContrast?'1':'0'); applyContrast(); });
 
-// Contacts
-function renderContacts(){ const list=$('#contactList'); list.innerHTML=''; if(!state.contacts.length){ list.innerHTML='<li class="text-sm text-slate-500">No contacts yet.</li>'; return } state.contacts.forEach((c,i)=>{ const li=document.createElement('li'); li.className='flex items-center justify-between rounded-xl border p-2'; li.innerHTML=`<div><div class="text-sm font-medium">${c.name}</div><div class="text-xs text-slate-600">${c.phone}</div></div><div class="flex gap-2"><a class="px-2 py-1 rounded border text-xs" href="sms:${c.phone}">SMS</a><button class="px-2 py-1 rounded border text-xs" data-del="${i}">Remove</button></div>`; list.appendChild(li); }); list.querySelectorAll('button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{ const i=+btn.dataset.del; state.contacts.splice(i,1); save(); renderContacts(); toast('Removed'); })); }
-$('#addContact').addEventListener('click',()=>{ const name=$('#contactName').value.trim(); const phone=$('#contactPhone').value.trim(); if(!name||!phone){ toast('Enter name & phone'); return } state.contacts.push({name,phone}); save(); $('#contactName').value=''; $('#contactPhone').value=''; renderContacts(); toast('Added'); });
+    function applyPrivacy(){
+      $('#privacySwitch').classList.toggle('on', state.privacyMask);
+      $('#privacySwitch').setAttribute('aria-checked', state.privacyMask?'true':'false');
+      document.querySelectorAll('[data-priv]').forEach(el=>{
+        el.textContent = state.privacyMask? '••••••' : el.dataset.priv;
+      });
+    }
+    $('#privacySwitch').addEventListener('click', ()=>{ state.privacyMask=!state.privacyMask; localStorage.setItem('cc_privacy', state.privacyMask?'1':'0'); applyPrivacy(); });
 
-// SOS hold
-let holdTimer, holding=false; const HOLD_MS=3000; const circle = $('#holdProgress'); const circLen = 339.292;
-function setProgress(p){ p=Math.max(0,Math.min(1,p)); circle.setAttribute('stroke-dashoffset', String(circLen*(1-p))); $('#holdPct').textContent=Math.round(p*100)+'%'; }
-function sendSOS(test=false){ navigator.geolocation?.getCurrentPosition(pos=>{ const link=`https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`; const msg=encodeURIComponent((test? '[TEST] ': '')+'SOS. I need help. Location: '+link); if(!state.contacts.length){ toast('Add a trusted contact'); return } const to = state.contacts.map(c=>c.phone).join(','); const sms = `sms:${to}?&body=${msg}`; if(state.settings.autoSms) window.location.href = sms; else { navigator.clipboard?.writeText(decodeURIComponent(msg)); toast('Message copied'); } }, ()=>{ const msg=encodeURIComponent((test? '[TEST] ': '')+'SOS. I need help. Location unavailable.'); const to = state.contacts.map(c=>c.phone).join(','); const sms = `sms:${to}?&body=${msg}`; if(state.settings.autoSms) window.location.href = sms; else { navigator.clipboard?.writeText(decodeURIComponent(msg)); toast('Message copied'); } }); }
-$('#sosBtn').addEventListener('mousedown',()=>{ if(!state.settings.requireHold){ sendSOS(); return } holding=true; const start=Date.now(); setProgress(0); holdTimer=setInterval(()=>{ const p=(Date.now()-start)/HOLD_MS; setProgress(p); if(p>=1){ clearInterval(holdTimer); holding=false; setProgress(1); sendSOS(false); } },50); }); ['mouseup','mouseleave','touchend'].forEach(ev=> $('#sosBtn').addEventListener(ev, ()=>{ if(holding){ clearInterval(holdTimer); setProgress(0); holding=false } })); $('#testSms').addEventListener('click',()=>sendSOS(true));
+    function updateFontSize(px){
+      document.documentElement.style.fontSize = px+'px';
+      $('#fontSizeVal').textContent = px;
+      localStorage.setItem('cc_font', px);
+    }
+    function toggleReducedMotion(){ state.reducedMotion=!state.reducedMotion; localStorage.setItem('cc_motion', state.reducedMotion?'1':'0'); $('#motionBtn').textContent = `Reduce Motion: ${state.reducedMotion?'On':'Off'}`; document.documentElement.style.scrollBehavior = state.reducedMotion?'auto':'smooth'; }
 
-// Reports map
-let reportMap, reportLayer;
-function initReportMap(){ reportMap=L.map('reportMap').setView([35.78,-78.64],12); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(reportMap); reportLayer=L.layerGroup().addTo(reportMap); redrawReports(); }
-function redrawReports(){ reportLayer.clearLayers(); state.reports.forEach(r=> L.marker([r.lat,r.lng]).addTo(reportLayer).bindPopup(`<b>${r.type}</b><br>${r.desc||''}`)); }
-$('#useLocation').addEventListener('click',()=>{ navigator.geolocation?.getCurrentPosition(pos=>{ $('#lat').value=pos.coords.latitude.toFixed(6); $('#lng').value=pos.coords.longitude.toFixed(6); toast('Location added'); }, ()=>toast('Location unavailable')); });
-$('#saveReport').addEventListener('click',()=>{ const type=$('#reportType').value; const desc=$('#reportDesc').value.trim(); const lat=parseFloat($('#lat').value); const lng=parseFloat($('#lng').value); if(Number.isNaN(lat)||Number.isNaN(lng)){ toast('Add valid lat & lng'); return } const rec={id:crypto.randomUUID(),type,desc,lat,lng,ts:Date.now()}; state.reports.push(rec); save(); redrawReports(); renderRecent(); toast('Report saved'); $('#reportDesc').value=''; $('#lat').value=''; $('#lng').value=''; });
+    // NAV
+    function navigate(id){
+      $$('.tab').forEach(b=> b.classList.toggle('active', b.dataset.tab===id));
+      $$('.tabview').forEach(v=> v.style.display = v.id===id? 'block':'none');
+      if(id==='home') drawMoodChart();
+      if(id==='mood') drawMoodChart2();
+      if(id==='meds') drawAdherence();
+      window.scrollTo({ top: 0 });
+    }
+    $$('.tab').forEach(b=> b.addEventListener('click', ()=> navigate(b.dataset.tab)) );
 
-// Route map (heuristic)
-let routeMap, routeLayer, hazardLayer;
-function initRouteMap(){ routeMap=L.map('routeMap').setView([35.78,-78.64],12); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(routeMap); hazardLayer=L.layerGroup().addTo(routeMap); drawHazards(); }
-function drawHazards(){ hazardLayer.clearLayers(); state.reports.forEach(r=>{ L.circleMarker([r.lat,r.lng],{radius:6,color:'#dc2626'}).addTo(hazardLayer).bindPopup(`${r.type}<br>${r.desc||''}`); }); }
-function randomOffset(){ return (Math.random()-.5)*0.02 }
-$('#planBtn').addEventListener('click',()=>{ const a=[35.7796+randomOffset(),-78.6382+randomOffset()]; const b=[35.7726+randomOffset(),-78.6746+randomOffset()]; if(routeLayer) routeMap.removeLayer(routeLayer); const prefs={wellLit:$('#wellLit').checked,avoidReports:$('#avoidReports').checked,nearCampus:$('#nearCampus').checked,mainRoads:$('#mainRoads').checked}; let score=70; score += prefs.wellLit?8:-4; score += prefs.avoidReports?8:-6; score += prefs.nearCampus?4:0; score += prefs.mainRoads?6:-3; const mid=[(a[0]+b[0])/2,(a[1]+b[1])/2]; const nearby = state.reports.filter(r=>Math.hypot(r.lat-mid[0],r.lng-mid[1])<0.01).length; score -= nearby*4; score=Math.max(5,Math.min(99,Math.round(score))); routeLayer=L.polyline([a,mid,b],{color: 'var(--brand)', weight:6}).addTo(routeMap); routeMap.fitBounds(L.latLngBounds([a,b]).pad(0.3)); $('#scoreWrap').classList.remove('hidden'); $('#safetyScore').textContent=score; $('#routeTips').textContent = score>=85? 'Excellent lighting and main roads.' : score>=70? 'Good route. Stay alert near marked areas.' : 'Caution advised. Consider changing time or path.'; });
+    // NAME
+    function saveName(){
+      const name=$('#yourName').value.trim();
+      store.write('profile.name', name);
+      renderName();
+    }
+    function renderName(){
+      const name = store.read('profile.name','');
+      $('#nameSpot').textContent = name? name : '';
+      $('#yourName').value = name;
+    }
 
-// Moods
-$$('.moodBtn').forEach(b=>b.addEventListener('click',()=>{ const v=+b.dataset.val; state.mood.push({v,ts:Date.now()}); save(); renderMood(); toast('Mood saved'); }));
-function renderMood(){ $('#moodLog').textContent = state.mood.slice(-5).map(m=>`${new Date(m.ts).toLocaleString()}: ${['😞','😐','🙂','😃'][m.v-1]||m.v}`).join('\n'); }
+    // WELCOME
+    function saveWelcomeName(){
+      const n=$('#welcomeName').value.trim(); if(n) store.write('profile.name', n);
+      $('#welcome').close(); renderName();
+    }
 
-// Meds & Appts
-$('#addMed').addEventListener('click',()=>{ const name=$('#medName').value.trim(); const time=$('#medTime').value; if(!name||!time){ toast('Enter med and time'); return } state.meds.push({id:crypto.randomUUID(),name,time}); save(); $('#medName').value=''; $('#medTime').value=''; renderMeds(); toast('Medication added'); });
-function renderMeds(){ const ul=$('#medList'); ul.innerHTML=''; if(!state.meds.length){ ul.innerHTML='<li class="text-sm text-slate-500">No meds set.</li>'; return } state.meds.forEach((m,i)=>{ const li=document.createElement('li'); li.className='flex items-center justify-between rounded-xl border p-2'; li.innerHTML=`<div><div class="text-sm font-medium">${m.name}</div><div class="text-xs text-slate-600">${m.time}</div></div><div class="flex gap-2"><button class="px-2 py-1 rounded border text-xs" data-del="${i}">Remove</button></div>`; ul.appendChild(li); }); ul.querySelectorAll('button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{ const i=+btn.dataset.del; state.meds.splice(i,1); save(); renderMeds(); toast('Removed'); })); }
-$('#addAppt').addEventListener('click',()=>{ const name=$('#apptName').value.trim(); const date=$('#apptDate').value; if(!name||!date){ toast('Enter appointment and date'); return } state.appts.push({id:crypto.randomUUID(),name,date}); save(); $('#apptName').value=''; $('#apptDate').value=''; renderAppts(); toast('Appointment added'); });
-function renderAppts(){ const ul=$('#apptList'); ul.innerHTML=''; if(!state.appts.length){ ul.innerHTML='<li class="text-sm text-slate-500">No appointments.</li>'; return } state.appts.forEach((a,i)=>{ const li=document.createElement('li'); li.className='flex items-center justify-between rounded-xl border p-2'; li.innerHTML=`<div><div class="text-sm font-medium">${a.name}</div><div class="text-xs text-slate-600">${a.date}</div></div><div class="flex gap-2"><button class="px-2 py-1 rounded border text-xs" data-del="${i}">Remove</button></div>`; ul.appendChild(li); }); ul.querySelectorAll('button[data-del]').forEach(btn=>btn.addEventListener('click',()=>{ const i=+btn.dataset.del; state.appts.splice(i,1); save(); renderAppts(); toast('Removed'); })); }
+    // MOOD
+    function todayKey(){ const d=new Date(); return d.toISOString().slice(0,10); }
+    function setMood(v){ store.write(`mood.${todayKey()}.score`, v); renderHome(); drawMoodChart(); drawMoodChart2(); suggestMoodAdvice(); }
+    function saveMood(){ const notes=$('#moodNotes').value.trim(); if(notes) store.write(`mood.${todayKey()}.notes`, notes); renderHome(); suggestMoodAdvice(); listJournal(); alert('Saved!'); }
+    function clearTodayMood(){ const k=store.k; if(k.mood) { delete k.mood[todayKey()]; store.k=k; } $('#moodNotes').value=''; renderHome(); drawMoodChart(); drawMoodChart2(); suggestMoodAdvice(); }
+    function getMoodArray(days=14){
+      const arr=[]; for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); const s=store.read(`mood.${key}.score`, null); arr.push({ key, v: s }); }
+      return arr;
+    }
+    function avgMood14(){ const a=getMoodArray(14).map(x=>x.v).filter(v=>typeof v==='number'); if(!a.length) return null; return (a.reduce((p,c)=>p+c,0)/a.length).toFixed(2); }
+    function lowMoodDays(){ return getMoodArray(14).filter(x=> (x.v||0) <=2).length; }
+    function quickLogMood(v){ setMood(v); navigate('home'); }
 
-// Today list
-function renderToday(){ const wrap = $('#todayList'); wrap.innerHTML=''; const today = new Date().toISOString().slice(0,10); const appts=state.appts.filter(a=>a.date===today); const meds=state.meds; if(!appts.length && !meds.length){ wrap.innerHTML='<div class="text-sm text-slate-500">No items for today.</div>'; return } appts.forEach(a=>{ const d=document.createElement('div'); d.className='rounded-xl border p-2 bg-white'; d.innerHTML=`<div class="text-sm font-medium">${a.name}</div><div class="text-xs text-slate-600">Appointment • ${a.date}</div>`; wrap.appendChild(d); }); meds.forEach(m=>{ const d=document.createElement('div'); d.className='rounded-xl border p-2 bg-white'; d.innerHTML=`<div class="text-sm font-medium">${m.name}</div><div class="text-xs text-slate-600">Med • ${m.time}</div>`; wrap.appendChild(d); }); }
+    function suggestMoodAdvice(){
+      const avg = avgMood14();
+      let msg = 'Log a few days to unlock personalized suggestions based on PHQ‑2 style screening questions.';
+      if(avg){
+        if(avg <= 2.2) msg = 'Noticing many low-mood days. Consider short daily walks, sleep hygiene, and talking to someone you trust. If you need help now, tap SOS.';
+        else if(avg <=3.5) msg = 'Mood is mixed. Try a 2‑minute breathing break and plan one small win for tomorrow.';
+        else msg = 'Great trend! Keep your routine and celebrate small wins. Reflect in your journal to sustain momentum.';
+      }
+      $('#moodAdvice').textContent = msg;
+      $('#avg14').textContent = avg? avg : '—';
+      $('#lowDays').textContent = getMoodArray(14).filter(x=> (x.v||0) <=2).length;
+    }
 
-// Symptom quick check (placeholder logic)
-$('#symCheck').addEventListener('click',()=>{ const q=$('#symInput').value.toLowerCase(); if(!q){ $('#symResult').textContent='Type symptoms to get quick advice.'; return } if(q.includes('fever')||q.includes('cough')) $('#symResult').textContent='Possible infection signs. Consider testing and contact clinic if severe.'; else if(q.includes('headache')) $('#symResult').textContent='Hydration, rest, and OTC pain relief may help. Seek care if severe.'; else $('#symResult').textContent='If symptoms persist, contact a health provider.'; });
+    // MEDS
+    function addMed(){
+      const name=$('#medName').value.trim(); const dose=$('#medDose').value.trim(); const times=parseInt($('#medTimes').value,10); const when=$('#medWhen').value.trim();
+      if(!name) return alert('Enter a medication name.');
+      const meds = store.read('meds', []);
+      meds.push({ id: crypto.randomUUID(), name, dose, times, when, history:{} });
+      store.write('meds', meds);
+      $('#medName').value=''; $('#medDose').value=''; $('#medWhen').value='';
+      renderMeds();
+    }
+    function medTakenToggle(id){
+      const meds = store.read('meds', []);
+      const m = meds.find(x=>x.id===id); if(!m) return;
+      const key=todayKey(); m.history[key] = !m.history[key];
+      store.write('meds', meds); renderMeds(); renderHome(); drawAdherence();
+    }
+    function markAllMedsTaken(){ const meds=store.read('meds',[]); const key=todayKey(); meds.forEach(m=>{ m.history[key]=true; }); store.write('meds', meds); renderMeds(); renderHome(); drawAdherence(); }
+    function resetTodayMeds(){ const meds=store.read('meds',[]); const key=todayKey(); meds.forEach(m=>{ delete m.history[key]; }); store.write('meds', meds); renderMeds(); renderHome(); drawAdherence(); }
+    function adherenceLast(days=14){
+      const meds=store.read('meds',[]); const out=[]; for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); const total = meds.reduce((p,m)=> p + (m.times||1), 0);
+        const taken = meds.reduce((p,m)=> p + ((m.history[key])? (m.times||1):0), 0); out.push({ key, pct: total? Math.round((taken/total)*100): 0 }); }
+      return out;
+    }
 
-// Resources (sample)
-const RESOURCES = [ {name:'Oak City Cares',type:'shelter',area:'Raleigh',phone:'919-123-1000',address:'1430 S Wilmington St'}, {name:'Urban Ministries Clinic',type:'clinic',area:'Raleigh',phone:'919-123-2000'}, {name:'Inter-Faith Food Shuttle',type:'food',area:'Raleigh',phone:'919-123-3000'}, {name:'Alliance Health',type:'mental',area:'Durham',phone:'800-510-9132'}, {name:'Duke Outpatient',type:'clinic',area:'Durham',phone:'919-684-8111'}, {name:'UNC Crisis Line',type:'mental',area:'Chapel Hill',phone:'984-974-5217'} ];
-function renderResources(){ const q=$('#resSearch').value.toLowerCase(); const t=$('#resType').value; const a=$('#resArea').value; const wrap=$('#resList'); wrap.innerHTML=''; RESOURCES.filter(r=>(!t||r.type===t)&&(!a||r.area===a)&&(r.name.toLowerCase().includes(q)|| (r.address||'').toLowerCase().includes(q))).forEach(r=>{ const card=document.createElement('div'); card.className='rounded-2xl border p-4 bg-white flex flex-col'; card.innerHTML = `<div class="flex items-center justify-between"><div class="text-base font-semibold">${r.name}</div><span class="text-xs px-2 py-1 rounded border text-slate-600">${r.type}</span></div><div class="text-sm text-slate-600 mt-1">${r.address||''} • ${r.area}</div><div class="mt-3 flex gap-2"><a class="px-3 py-2 rounded-xl border text-sm" href="tel:${r.phone}">Call</a><a class="px-3 py-2 rounded-xl border text-sm" target="_blank" href="#">Website</a></div>`; wrap.appendChild(card); }); }
+    function renderMeds(){
+      const meds=store.read('meds', []);
+      if(!meds.length){ $('#medList').innerHTML='No meds yet.'; return; }
+      const key=todayKey();
+      $('#medList').innerHTML = meds.map(m=>{
+        const checked = !!m.history[key];
+        const pct = adherenceLast(7).slice(-1)[0]?.pct ?? 0;
+        return `<div class="stat" style="gap:10px;">
+          <div style="flex:1;">
+            <div style="font-weight:700;">${m.name} <span class="muted" style="font-weight:400;">${m.dose? '• '+m.dose:''}</span></div>
+            <div class="muted" style="font-size:12px;">${m.times||1}× / day • ${m.when||'—'}</div>
+          </div>
+          <button class="btn ${checked?'primary':''}" onclick="medTakenToggle('${m.id}')">${checked?'Taken ✓':'Mark Taken'}</button>
+        </div>`;
+      }).join('');
+    }
 
-// Check-in timer
-let countdown, endAt=0; function tick(){ if(!endAt){ $('#timeLeft').textContent='—'; return } const ms=Math.max(0,endAt-Date.now()); const mins=String(Math.floor(ms/60000)).padStart(2,'0'); const secs=String(Math.floor((ms%60000)/1000)).padStart(2,'0'); $('#timeLeft').textContent = `${mins}:${secs}`; if(ms<=0){ clearInterval(countdown); endAt=0; $('#timeLeft').textContent='Missed check‑in! Preparing SMS…'; sendSOS(false); } }
-$('#startTimer').addEventListener('click',()=>{ const m=parseInt($('#mins').value)||15; endAt=Date.now()+m*60000; clearInterval(countdown); countdown=setInterval(tick,500); tick(); toast('Timer started'); }); $('#cancelTimer').addEventListener('click',()=>{ clearInterval(countdown); endAt=0; tick(); toast('Timer canceled'); });
+    // JOURNAL
+    const PROMPTS = [
+      'What’s one small win today?',
+      'What’s stressing me, and what’s in my control?',
+      'Three things I’m grateful for…',
+      'If I felt 10% better tomorrow, what would I do?',
+      'Who can I text to connect today?',
+      'What routine helps my mood most?',
+      'What made me smile recently?',
+    ];
+    function newJournalPrompt(){ $('#journalPrompt').value = PROMPTS[Math.floor(Math.random()*PROMPTS.length)]; }
+    function saveJournal(){ const text=$('#journalText').value.trim(); const prompt=$('#journalPrompt').value.trim(); if(!text){ alert('Write something first.'); return; } const entries=store.read('journal', []); entries.unshift({ id: crypto.randomUUID(), date: new Date().toISOString(), prompt, text }); store.write('journal', entries); $('#journalText').value=''; listJournal(); alert('Saved!'); }
+    function clearJournal(){ $('#journalText').value=''; }
+    function listJournal(){ const entries=store.read('journal', []); if(!entries.length){ $('#journalList').innerHTML='No entries yet.'; return; } $('#journalList').innerHTML = entries.map(e=>{
+      const d=new Date(e.date).toLocaleString();
+      const t = state.privacyMask? '••••••' : e.text.replace(/</g,'&lt;').slice(0,140)+(e.text.length>140?'…':'');
+      return `<div class="stat" style="flex-direction:column; align-items:flex-start; gap:6px;">
+        <div style="font-size:12px; color:var(--muted);">${d}</div>
+        <div style="font-weight:600;">${e.prompt||''}</div>
+        <div>${t}</div>
+      </div>`; }).join(''); }
 
-// Settings sync
-function syncSettingsUI(){ $('#privacyLoc').checked = !!state.settings.privacyLoc; $('#requireHold').checked = !!state.settings.requireHold; $('#autoSms').checked = !!state.settings.autoSms; $('#district').value = state.settings.district || 'NC-02'; }
-['privacyLoc','requireHold','autoSms','district'].forEach(id=>{ const el=$('#'+id); el.addEventListener('change', e=>{ let v = (el.type==='checkbox')? el.checked : el.value; state.settings[id]=v; save(); }); });
-$('#resetApp').addEventListener('click',()=>{ if(confirm('Clear local data?')){ localStorage.removeItem(storeKey); location.reload(); } });
+    // SOS
+    function addSOS(){ const name=$('#sosName').value.trim(); const phone=$('#sosPhone').value.trim(); if(!name||!phone) return alert('Enter name and phone.'); const arr=store.read('sos', []); arr.push({ id: crypto.randomUUID(), name, phone }); store.write('sos', arr); $('#sosName').value=''; $('#sosPhone').value=''; renderSOS(); }
+    function renderSOS(){ const arr=store.read('sos', []); const wrap=$('#sosList'); wrap.innerHTML = arr.map(c=>`<a class="pill" href="tel:${c.phone}" title="Call ${c.name}" oncontextmenu="event.preventDefault(); removeSOS('${c.id}')">${c.name}</a>`).join(''); }
+    function removeSOS(id){ const arr=store.read('sos', []); const out=arr.filter(x=>x.id!==id); store.write('sos', out); renderSOS(); }
 
-// Shortcuts
-$('#goMeds').addEventListener('click',()=> $$('.tab')[3].click());
-$('#findClinic').addEventListener('click',()=>{ toast('Opening resources'); $$('.tab')[6].click(); });
-$('#callCrisis').addEventListener('click',()=>{ window.location.href='tel:800-510-9132' });
-$('#bookRide').addEventListener('click',()=>{ toast('Request ride via local provider'); });
+    // RESOURCES
+    const DEFAULT_RES = [
+      { name:'Food Bank (Wake County)', type:'food', link:'+1 919‑555‑1111' },
+      { name:'Community Clinic', type:'health', link:'+1 919‑555‑2222' },
+      { name:'Crisis Center', type:'mental', link:'+1 919‑555‑3333' },
+      { name:'Legal Aid NC', type:'legal', link:'+1 866‑219‑5262' },
+      { name:'Shelter Hotline', type:'housing', link:'+1 919‑555‑4444' },
+    ];
+    function ensureResources(){ if(!store.read('resources')) store.write('resources', DEFAULT_RES); }
+    function addResource(){ const v=$('#resAdd').value.trim(); if(!v) return; const [name,type,link] = v.split('|').map(s=> s? s.trim(): ''); if(!name||!type||!link) return alert('Use: Name | Type | Phone/URL'); const r=store.read('resources', []); r.push({ name, type: type.toLowerCase(), link }); store.write('resources', r); $('#resAdd').value=''; renderResources(); }
+    function resetResources(){ if(confirm('Reset resources to defaults?')) { store.write('resources', DEFAULT_RES); renderResources(); } }
+    function renderResources(){ const typ=$('#resFilter').value; const r=store.read('resources', []); const list = r.filter(x=> typ==='all' ? true : x.type===typ); $('#resList').innerHTML = list.map(x=>`<div class="card" style="min-height:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div>
+            <div style="font-weight:700;">${x.name}</div>
+            <div class="muted" style="font-size:12px; text-transform:capitalize;">${x.type}</div>
+          </div>
+          <a class="btn" href="${x.link.startsWith('http')? x.link : 'tel:'+x.link}" target="_blank">Contact</a>
+        </div>
+      </div>`).join(''); }
 
-// Init
-window.addEventListener('DOMContentLoaded',()=>{ initMap(); initReportMap(); initRouteMap(); renderContacts(); renderRecent(); renderMeds(); renderAppts(); renderResources(); renderToday(); renderMood(); syncSettingsUI(); });
+    // EXPORT / IMPORT
+    function exportData(){ const data = store.k; const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='carecompass_export_'+todayKey()+'.json'; a.click(); URL.revokeObjectURL(url); }
+    function importData(evt){ const f=evt.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=()=>{ try{ const obj=JSON.parse(reader.result); if(!obj||typeof obj!=='object') throw new Error('Invalid file'); store.k=obj; init(); alert('Import successful!'); }catch(e){ alert('Import failed: '+e.message); } }; reader.readAsText(f); }
 
-// Tiny selectors
-function $(q){ return document.querySelector(q); }
-function $$(q){ return document.querySelectorAll(q); }
-</script>
+    // CHARTS (vanilla canvas)
+    function drawLine(canvasId, points, {yMax=5, colorGrad=['#22d3ee','#a78bfa']}={}){
+      const c = document.getElementById(canvasId); if(!c) return; const ctx=c.getContext('2d'); const W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+      // bg grid
+      ctx.strokeStyle='rgba(148,163,184,.15)'; ctx.lineWidth=1; for(let i=1;i<5;i++){ const y=H - (i*(H/5)); ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(W-10,y); ctx.stroke(); }
+      // axes
+      ctx.strokeStyle='rgba(148,163,184,.35)'; ctx.beginPath(); ctx.moveTo(40,10); ctx.lineTo(40,H-20); ctx.lineTo(W-10,H-20); ctx.stroke();
+      // gradient
+      const grad = ctx.createLinearGradient(0,0,W,0); grad.addColorStop(0,colorGrad[0]); grad.addColorStop(1,colorGrad[1]);
+      // line
+      ctx.strokeStyle=grad; ctx.lineWidth=3; ctx.beginPath();
+      points.forEach((p,i)=>{ const x = 40 + i*((W-60)/Math.max(1,points.length-1)); const y = 10 + (1-(p.v||0)/yMax)*(H-30); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y); });
+      ctx.stroke();
+      // dots
+      ctx.fillStyle=grad; points.forEach((p,i)=>{ const x=40 + i*((W-60)/Math.max(1,points.length-1)); const y=10 + (1-(p.v||0)/yMax)*(H-30); ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill(); });
+    }
+
+    function drawMoodChart(){ const arr=getMoodArray(14).map(x=> ({ v: (x.v||0) })); drawLine('moodChart', arr, { yMax:5 }); $('#homeMood').textContent = (store.read(`mood.${todayKey()}.score`, null)??'—'); updateHomeMedsAndStreak(); }
+    function drawMoodChart2(){ const arr=getMoodArray(14).map(x=> ({ v: (x.v||0) })); drawLine('moodChart2', arr, { yMax:5 }); suggestMoodAdvice(); }
+
+    function updateHomeMedsAndStreak(){
+      const meds=store.read('meds',[]); const key=todayKey(); const total=meds.reduce((p,m)=> p+(m.times||1),0); const taken=meds.reduce((p,m)=> p+((m.history[key])?(m.times||1):0),0); const pct= total? Math.round((taken/total)*100):0; $('#homeMeds').textContent = pct+'%';
+      // streak = consecutive days with any mood logged
+      let streak=0; for(let i=0;i<90;i++){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const v=store.read(`mood.${k}.score`, null); if(v){ streak++; } else break; }
+      $('#homeStreak').textContent = streak + ' day' + (streak===1?'':'s');
+    }
+
+    function drawAdherence(){ const arr=adherenceLast(14).map(x=> ({ v:x.pct/20 })); // scale to 0-5
+      drawLine('adherenceChart', arr, { yMax:5, colorGrad:['#34d399','#22d3ee'] }); }
+
+    function renderHome(){ renderName(); updateHomeMedsAndStreak(); }
+
+    // INIT
+    function init(){
+      applyTheme(); applyContrast(); applyPrivacy(); updateFontSize(state.baseFont); $('#fontSlider').value=state.baseFont; $('#motionBtn').textContent = `Reduce Motion: ${state.reducedMotion?'On':'Off'}`; document.documentElement.style.scrollBehavior = state.reducedMotion?'auto':'smooth';
+      ensureResources(); renderResources(); renderMeds(); listJournal(); renderSOS(); newJournalPrompt(); renderHome(); drawMoodChart(); drawMoodChart2();
+      // onboarding
+      if(!store.read('profile')){ $('#welcome').showModal(); }
+      // name spots
+      renderName();
+    }
+
+    // PRIVACY MASK BINDING EXAMPLE (name on home)
+    function bindPrivacy(){ const name=store.read('profile.name',''); const spot=$('#nameSpot'); spot.dataset.priv=name || ''; if(state.privacyMask) spot.textContent=''; }
+
+    // observe profile changes
+    const observer = new MutationObserver(bindPrivacy);
+    observer.observe(document.body,{ childList:true, subtree:true });
+
+    // Expose some for quick actions
+    window.navigate = navigate;
+    window.quickLogMood = quickLogMood;
+    window.markAllMedsTaken = markAllMedsTaken;
+    window.newJournalPrompt = newJournalPrompt;
+    window.exportData = exportData;
+    window.importData = importData;
+
+    // Start
+    init();
+    bindPrivacy();
+  </script>
 </body>
 </html>
