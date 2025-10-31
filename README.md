@@ -8,3 +8,5 @@ How to Use
 "If I needed you
 Would you come to me
 And ease my pain" — Lyle Lovett, If I Needed You (1998)
+
+The Safe Route aspect was being buggy, especially due to some API issues, email me for the code.
